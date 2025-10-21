@@ -1,0 +1,101 @@
+
+#include <SoftwareSerial.h>
+
+#define trigPin 9
+#define echoPin 10
+#define flamePin A0
+#define buzzerPin 11
+
+#define IN1 4
+#define IN2 5
+#define IN3 6
+#define IN4 7
+
+SoftwareSerial BT(2, 3); // RX, TX
+int flameThreshold = 500; // Adjust based on sensor
+
+void setup() {
+  pinMode(trigPin, OUTPUT);
+  pinMode(echoPin, INPUT);
+  pinMode(flamePin, INPUT);
+  pinMode(buzzerPin, OUTPUT);
+
+  pinMode(IN1, OUTPUT);
+  pinMode(IN2, OUTPUT);
+  pinMode(IN3, OUTPUT);
+  pinMode(IN4, OUTPUT);
+
+  BT.begin(9600);
+  Serial.begin(9600);
+}
+
+void loop() {
+  int flameValue = analogRead(flamePin);
+  long distance = getDistance();
+
+  if (flameValue < flameThreshold) {
+    stopCar();
+    alertFire();
+  } else if (distance < 20) {
+    stopCar();
+  } else {
+    if (BT.available()) {
+      char cmd = BT.read();
+      executeCommand(cmd);
+    }
+  }
+}
+
+long getDistance() {
+  digitalWrite(trigPin, LOW); delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH); delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long duration = pulseIn(echoPin, HIGH);
+  return duration * 0.034 / 2;
+}
+
+void alertFire() {
+  digitalWrite(buzzerPin, HIGH);
+  delay(500);
+  digitalWrite(buzzerPin, LOW);
+  delay(500);
+}
+
+void stopCar() {
+  digitalWrite(IN1, LOW);
+  digitalWrite(IN2, LOW);
+  digitalWrite(IN3, LOW);
+  digitalWrite(IN4, LOW);
+}
+
+void executeCommand(char cmd) {
+  switch (cmd) {
+    case 'F': // Forward
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+      break;
+    case 'B': // Backward
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+      break;
+    case 'L': // Left
+      digitalWrite(IN1, LOW);
+      digitalWrite(IN2, HIGH);
+      digitalWrite(IN3, HIGH);
+      digitalWrite(IN4, LOW);
+      break;
+    case 'R': // Right
+      digitalWrite(IN1, HIGH);
+      digitalWrite(IN2, LOW);
+      digitalWrite(IN3, LOW);
+      digitalWrite(IN4, HIGH);
+      break;
+    case 'S': // Stop
+      stopCar();
+      break;
+  }
+}
